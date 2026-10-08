@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI destekli kampanya önerisi akışı</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --ink:#14171F; --ink-2:#4A5060; --ink-3:#7A8091;
+  --paper:#F3F4F7; --card:#FFFFFF; --line:#D8DBE3; --line-2:#C3C7D2;
+  --gold:#F4CB35; --gold-soft:#FBF1C6; --gold-ink:#5B4600;
+  --dark:#14171F; --on-dark:#F7F3E3;
+  --ok:#1F7A5A; --warn-bg:#FFF3DA; --warn-ink:#7A4B00;
+  --font-d:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --font-b:"Figtree","Segoe UI",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ink:#EEF0F5; --ink-2:#B3B8C6; --ink-3:#8A90A1;
+    --paper:#0F1218; --card:#171B24; --line:#2A3040; --line-2:#3A4156;
+    --gold:#F4CB35; --gold-soft:#2E2A12; --gold-ink:#F4DF8A;
+    --dark:#0A0C11; --on-dark:#F7F3E3;
+    --ok:#4FC79B; --warn-bg:#2C2210; --warn-ink:#F1C77A;
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#EEF0F5; --ink-2:#B3B8C6; --ink-3:#8A90A1;
+  --paper:#0F1218; --card:#171B24; --line:#2A3040; --line-2:#3A4156;
+  --gold:#F4CB35; --gold-soft:#2E2A12; --gold-ink:#F4DF8A;
+  --dark:#0A0C11; --on-dark:#F7F3E3;
+  --ok:#4FC79B; --warn-bg:#2C2210; --warn-ink:#F1C77A;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+*,*::before,*::after{box-sizing:border-box;}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font-b);font-size:16px;line-height:1.55;}
+button{font:inherit;color:inherit;}
+.wrap{max-width:1200px;margin:0 auto;padding:32px 20px 64px;}
+header.top{max-width:720px;margin-bottom:28px;}
+h1{font-family:var(--font-d);font-weight:700;font-size:clamp(28px,4.4vw,44px);line-height:1.08;margin:0 0 10px;letter-spacing:-.02em;}
+header.top p{margin:0;color:var(--ink-2);}
+.layout{display:grid;grid-template-columns:minmax(0,1fr);gap:24px;align-items:start;}
+@media (min-width:960px){.layout{grid-template-columns:minmax(0,1fr) 380px;gap:36px;}}
+
+.flow{display:flex;flex-direction:column;}
+.stage{display:grid;grid-template-columns:1fr;column-gap:16px;}
+@media (min-width:600px){.stage{grid-template-columns:84px 1fr;}}
+.rail{display:none;font-size:13px;color:var(--ink-3);padding-top:14px;font-weight:500;}
+@media (min-width:600px){.rail{display:block;}}
+.cells{display:grid;gap:12px;}
+.c4{grid-template-columns:repeat(2,minmax(0,1fr));}
+@media (min-width:760px){.c4{grid-template-columns:repeat(4,minmax(0,1fr));}}
+.c2{grid-template-columns:repeat(2,minmax(0,1fr));}
+.c1{grid-template-columns:minmax(0,1fr);}
+
+.node{display:block;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;cursor:pointer;transition:border-color .15s,background .15s,transform .15s;}
+.node:hover{border-color:var(--line-2);transform:translateY(-1px);}
+.node:focus-visible{outline:3px solid var(--gold);outline-offset:2px;}
+.node .t{display:block;font-family:var(--font-d);font-weight:500;font-size:16px;line-height:1.25;}
+.node .s{display:block;font-size:13px;color:var(--ink-2);margin-top:3px;}
+.node.sel{border-color:var(--ink);background:var(--gold-soft);box-shadow:inset 4px 0 0 var(--gold);}
+.node.engine{background:var(--dark);border-color:var(--dark);color:var(--on-dark);padding:18px 18px;}
+.node.engine .t{font-size:20px;color:var(--on-dark);}
+.node.engine .s{color:#C9C5B0;font-size:14px;}
+.node.engine.sel{background:var(--dark);border-color:var(--gold);box-shadow:inset 5px 0 0 var(--gold);}
+.node.guard{border-style:dashed;border-color:var(--gold);}
+.node.guard.sel{border-style:solid;}
+.node .kv{display:block;margin-top:8px;font-variant-numeric:tabular-nums;font-size:14px;font-weight:600;}
+.node .kv em{font-style:normal;color:var(--ink-3);font-weight:500;}
+
+.links{display:grid;gap:12px;height:30px;}
+.links.l4{grid-template-columns:repeat(2,minmax(0,1fr));}
+@media (min-width:760px){.links.l4{grid-template-columns:repeat(4,minmax(0,1fr));}}
+.links.l2{grid-template-columns:repeat(2,minmax(0,1fr));}
+.links.l1{grid-template-columns:minmax(0,1fr);}
+.links i{position:relative;display:block;}
+.links i::before{content:"";position:absolute;left:50%;top:4px;bottom:9px;width:2px;margin-left:-1px;background:var(--line-2);}
+.links i::after{content:"";position:absolute;left:50%;bottom:4px;width:7px;height:7px;margin-left:-4px;border-right:2px solid var(--line-2);border-bottom:2px solid var(--line-2);transform:rotate(45deg);}
+.links.l4 i:nth-child(n+3){display:none;}
+@media (min-width:760px){.links.l4 i:nth-child(n+3){display:block;}}
+.stagewrap{display:block;}
+.loop{display:flex;gap:10px;align-items:center;margin-top:12px;color:var(--ink-2);font-size:14px;}
+@media (min-width:600px){.loop{margin-left:100px;}}
+.loop b{font-family:var(--font-d);font-weight:500;color:var(--ink);}
+.loop span.arrow{display:inline-block;width:28px;height:2px;background:var(--line-2);position:relative;}
+.loop span.arrow::after{content:"";position:absolute;right:0;top:-3px;width:7px;height:7px;border-left:2px solid var(--line-2);border-top:2px solid var(--line-2);transform:rotate(-45deg);}
+
+.detail{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 22px 18px;}
+@media (min-width:960px){.detail{position:sticky;top:calc(20px + env(safe-area-inset-top,0px));max-height:calc(100vh - 40px);overflow:auto;}}
+@media (max-width:959px){
+  .detail{position:fixed;left:0;right:0;bottom:0;z-index:10;border-radius:16px 16px 0 0;max-height:62vh;overflow:auto;padding-bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateY(105%);transition:transform .25s ease;border-bottom:0;}
+  .detail.open{transform:none;}
+  body.sheet{padding-bottom:62vh;}
+}
+.close{display:none;position:absolute;right:12px;top:12px;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--card);cursor:pointer;font-size:18px;line-height:1;}
+@media (max-width:959px){.close{display:block;}}
+.stage-tag{display:inline-block;font-size:13px;font-weight:600;background:var(--gold-soft);color:var(--gold-ink);padding:2px 10px;border-radius:99px;margin-bottom:10px;}
+.detail h2{font-family:var(--font-d);font-weight:700;font-size:24px;line-height:1.15;margin:0 36px 8px 0;letter-spacing:-.01em;}
+.detail .sum{margin:0 0 14px;color:var(--ink-2);}
+.detail h3{font-family:var(--font-d);font-weight:500;font-size:15px;margin:16px 0 6px;}
+.detail ul{margin:0;padding-left:18px;}
+.detail li{margin:3px 0;}
+.ex{background:var(--paper);border-radius:8px;padding:10px 12px;font-size:15px;}
+.watch{background:var(--warn-bg);color:var(--warn-ink);border-radius:8px;padding:10px 12px 10px 28px;font-size:15px;}
+.watch li{margin:2px 0;}
+.nav{display:flex;gap:8px;margin-top:18px;}
+.nav button{flex:1;padding:10px 12px;border-radius:8px;border:1px solid var(--line-2);background:var(--card);cursor:pointer;font-weight:500;}
+.nav button:hover{border-color:var(--ink);}
+.nav button:focus-visible{outline:3px solid var(--gold);outline-offset:2px;}
+.nav button[disabled]{opacity:.4;cursor:default;}
+.nav .primary{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+.empty p{color:var(--ink-2);margin:0 0 14px;}
+.start{padding:10px 16px;border-radius:8px;border:0;background:var(--gold);color:#14171F;font-weight:600;cursor:pointer;}
+.start:focus-visible{outline:3px solid var(--ink);outline-offset:2px;}
+.note{margin-top:28px;color:var(--ink-3);font-size:13px;max-width:640px;}
+@media (prefers-reduced-motion:reduce){*{transition:none !important;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Kişiye özel kampanya önerisi akışı</h1>
+    <p>Dört müşteri girdisinden, uygulamadaki kampanya deneyimine ve sonuç takibine kadar tüm yol. Detayını görmek için akıştaki bir adıma tıklayın.</p>
+  </header>
+
+  <div class="layout">
+    <main class="flow" id="flow">
+      <section class="stage">
+        <div class="rail">Girdiler</div>
+        <div>
+          <div class="cells c4">
+            <button class="node" data-id="segment"><span class="t">Segment</span><span class="s">Değer, bağlılık</span></button>
+            <button class="node" data-id="spend"><span class="t">Harcama yönelimi</span><span class="s">12 ay, sezonluk</span></button>
+            <button class="node" data-id="camp"><span class="t">Kampanya geçmişi</span><span class="s">Teklif, sonuç</span></button>
+            <button class="node" data-id="tx"><span class="t">Sık işlemler</span><span class="s">Kanal, işlem tipi</span></button>
+          </div>
+          <div class="links l4" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+        </div>
+      </section>
+
+      <section class="stage">
+        <div class="rail">Profil</div>
+        <div>
+          <div class="cells c1">
+            <button class="node" data-id="profile"><span class="t">Müşteri 360 profili</span><span class="s">Girdiler birleştirilir, özellikler çıkarılır</span></button>
+          </div>
+          <div class="links l1" aria-hidden="true"><i></i></div>
+        </div>
+      </section>
+
+      <section class="stage">
+        <div class="rail">Karar</div>
+        <div>
+          <div class="cells c1">
+            <button class="node engine" data-id="engine"><span class="t">AI karar motoru</span><span class="s">Müşteriyi sınıflar, hedef ve ödül önerir</span></button>
+          </div>
+          <div class="links l2" aria-hidden="true"><i></i><i></i></div>
+          <div class="cells c2">
+            <button class="node" data-id="custA"><span class="t">Müşteri A: kârlı ve bağlı</span><span class="s">Cömert ödül, sadakati güçlendir</span></button>
+            <button class="node" data-id="custB"><span class="t">Müşteri B: düşük kâr, yüksek potansiyel</span><span class="s">Ulaşılabilir hedef, kontrollü ödül</span></button>
+          </div>
+          <div class="links l2" aria-hidden="true"><i></i><i></i></div>
+        </div>
+      </section>
+
+      <section class="stage">
+        <div class="rail">Teklif</div>
+        <div>
+          <div class="cells c2">
+            <button class="node" data-id="offerA"><span class="t">Teklif A</span><span class="kv">8.000 TL harca <em>→</em> 600 TL kazan</span></button>
+            <button class="node" data-id="offerB"><span class="t">Teklif B</span><span class="kv">3.000 TL harca <em>→</em> 100 TL kazan</span></button>
+          </div>
+          <div class="links l2" aria-hidden="true"><i></i><i></i></div>
+        </div>
+      </section>
+
+      <section class="stage">
+        <div class="rail">Kontrol</div>
+        <div>
+          <div class="cells c1">
+            <button class="node guard" data-id="guard"><span class="t">Kârlılık, bütçe ve risk kontrolü</span><span class="s">Net kârlılık, teşvik bütçesi, uygunluk, sorumlu kredi</span></button>
+          </div>
+          <div class="links l1" aria-hidden="true"><i></i></div>
+        </div>
+      </section>
+
+      <section class="stage">
+        <div class="rail">Sunum</div>
+        <div>
+          <div class="cells c1">
+            <button class="node" data-id="present"><span class="t">Uygulamada sunum</span><span class="s">Ana ekran, kampanya detayı, ilerleme, ödül</span></button>
+          </div>
+          <div class="links l1" aria-hidden="true"><i></i></div>
+        </div>
+      </section>
+
+      <section class="stage">
+        <div class="rail">Ölçüm</div>
+        <div>
+          <div class="cells c1">
+            <button class="node" data-id="track"><span class="t">Sonuç takibi ve öğrenme</span><span class="s">Hedefe ulaşma, net katkı, geri besleme</span></button>
+          </div>
+        </div>
+      </section>
+
+      <div class="loop"><span class="arrow"></span><b>Geri besleme</b> Sonuçlar profile ve karar motoruna döner.</div>
+      <p class="note">Sayısal örnekler (8.000 TL / 600 TL, 3.000 TL / 100 TL) tasarım görselindeki örneklerden alınmıştır. Gerçek eşik ve ödüller bankanın kendi verisiyle belirlenmelidir.</p>
+    </main>
+
+    <aside class="detail" id="detail" aria-live="polite">
+      <button class="close" id="close" aria-label="Detayı kapat">&times;</button>
+      <div id="detail-body"></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+var D = {
+ segment:{stage:"Girdi",title:"Müşteri segmenti",
+  sum:"Müşterinin banka için değerini ve ilişkisinin derinliğini tanımlar. Teklifin ne kadar cömert olacağının ilk işaretidir.",
+  uses:["Ayrıcalıklar Dünyası segmenti","Sahip olunan ürün sayısı ve türleri","Müşteri bazlı net kârlılık","Müşterilik süresi"],
+  outs:["Segment etiketi (ör. yüksek değerli, büyüme potansiyelli)","Değer ve bağlılık skoru"],
+  ex:"Platinum kart sahibi, birden fazla ürünü olan müşteri yüksek değerli segmentte yer alır.",
+  watch:["Segment etiketi müşteriye gösterilmez, yalnızca banka içinde kullanılır.","Segment tek başına karar vermez, diğer girdilerle birlikte değerlendirilir."]},
+ spend:{stage:"Girdi",title:"Harcama yönelimi",
+  sum:"Müşterinin ne kadar ve nerede harcadığını, harcamasının mevsime göre nasıl değiştiğini gösterir. Hedef eşiğinin temel referansıdır.",
+  uses:["Son 12 aylık kart harcamaları","Son 3 aylık ortalama harcama (mevcut upsell referansı)","Kategori dağılımı (yeme-içme, seyahat, online alışveriş)","Sezonluk dalgalanma"],
+  outs:["Aylık harcama baz çizgisi","Kategori eğilimleri","Harcama artırma kapasitesi"],
+  ex:"Son 3 ay ortalaması düşük ama son 12 ayda belirli aylarda yüksek harcama varsa, müşterinin artırma kapasitesi olduğu anlaşılır.",
+  watch:["Bayram ve indirim dönemleri gibi sezon etkileri baz çizgiyi şişirmemelidir.","Tek seferlik büyük harcamalar (anomali) ortalamadan ayıklanmalıdır."]},
+ camp:{stage:"Girdi",title:"Kampanya geçmişi",
+  sum:"Müşterinin daha önce hangi tekliflere nasıl tepki verdiğini gösterir. Hangi eşik ve ödülün işe yaradığını öğretir.",
+  uses:["Geçmiş upsell teklifleri (hangi eşik, hangi ödül)","Kampanya sonuçları: kim hedefe ulaştı, ne kadar harcadı","Katılım ve terk davranışı"],
+  outs:["Teklife yanıt eğilimi","Ödül duyarlılığı","Kampanya yorgunluğu göstergesi"],
+  ex:"Daha önce 2.500 TL hedefini tamamlayan ama 5.000 TL hedefini bırakan müşteriye orta düzey bir hedef önerilir.",
+  watch:["Yalnızca ödül varken harcayıp sonra durana müşteriler (kampanya avcıları) ayrıca işaretlenmelidir.","Çok sık teklif gösterilen müşteride yorgunluk riski vardır."]},
+ tx:{stage:"Girdi",title:"En sık yapılan işlemler",
+  sum:"Müşterinin uygulamayı nasıl kullandığını gösterir. Teklifin nerede ve ne zaman gösterileceğini belirler.",
+  uses:["Para gönder, fatura öde, kart işlemleri gibi sık işlemler","Kullanılan kanal (mobil, internet şubesi)","İşlem sıklığı ve günün saati"],
+  outs:["Uygulama alışkanlığı profili","Kampanya kartı yerleşimi ve bildirim zamanı önerisi"],
+  ex:"Her ay başı fatura ödeyen müşteriye teklif, fatura ödeme ekranına yakın bir zamanda gösterilir.",
+  watch:["Kullanım sıklığı düşük müşteride bildirim yerine uygulama içi gösterim tercih edilmelidir."]},
+ profile:{stage:"Profil",title:"Müşteri 360 profili",
+  sum:"Dört girdi tek bir müşteri anahtarında birleştirilir ve karar motorunun kullanacağı özellikler üretilir.",
+  uses:["Segment, harcama, kampanya ve işlem verileri","Müşteri bazlı net kârlılık ve kart bazlı net katkı","Müşteri risk göstergeleri"],
+  outs:["Büyüme potansiyeli skoru","Hedefe yakınlık","Kategori payları","Kampanya yanıt oranı","Risk bandı"],
+  ex:"Müşteri 5678 için: aktif kart kullanıcısı, düşük net katkı, yüksek büyüme potansiyeli, düşük risk.",
+  watch:["Veri her gün ya da en az haftalık güncellenmelidir.","KVKK kapsamında yalnızca teklif için gerekli veriler kullanılmalıdır."]},
+ engine:{stage:"Karar",title:"AI karar motoru",
+  sum:"Müşteriyi kârlılık ve potansiyel açısından sınıflar, ardından hedef tutarı, ödülü, kanalı ve zamanı önerir.",
+  uses:["Müşteri 360 profili","Geçmiş kampanya sonuçları","Güncel teşvik bütçesi"],
+  outs:["Müşteri yolu (A ya da B)","Hedef harcama tutarı","Ödül tutarı","Gösterim kanalı ve zamanı"],
+  ex:"Hedefe ulaşma olasılığı, ek harcama tahmini ve beklenen net katkı birlikte hesaplanır, en yüksek net katkı sağlayan teklif seçilir.",
+  watch:["Kural tabanlı sınırlar ile model önerileri birlikte çalışmalıdır (hibrit yapı).","Her kararın nedeni kayıt altına alınmalıdır, böylece 'bu müşteriye neden bu teklif?' sorusu yanıtlanabilir."]},
+ custA:{stage:"Karar",title:"Müşteri A: kârlı ve bağlı",
+  sum:"Banka için değerli, ilişkisi güçlü müşteri. Amaç sadakati pekiştirmek ve kart kullanımını artırmaktır.",
+  uses:["Yüksek kârlılık","Yüksek etkileşim","Birden fazla ürün","Elde tutma odağı"],
+  outs:["Daha cömert ödül","Yüksek ama gerçekçi hedef"],
+  ex:"Platinum kart, 48.250,75 TL bakiyeli müşteriye 8.000 TL harcamada 600 TL ödül önerilir.",
+  watch:["Bu müşterinin zaten harcayacağı tutar için gereksiz ödül verilmemelidir. Ödül, ek harcamayı hedeflemelidir."]},
+ custB:{stage:"Karar",title:"Müşteri B: düşük kâr, yüksek potansiyel",
+  sum:"Bugün kârlılığı düşük ama artırabilecek müşteri. Amaç kart kullanımını artırıp pozitif katkıya taşımaktır.",
+  uses:["Bugün düşük kârlılık","Büyüme potansiyeli","Aktif kart kullanıcısı","Dönüşüm odağı"],
+  outs:["Ulaşılabilir hedef","Kontrollü, düşük maliyetli ödül"],
+  ex:"Standart kartlı müşteriye 3.000 TL harcamada 100 TL ödül önerilir.",
+  watch:["Hedef çok yüksek olursa müşteri teklifi yarıda bırakır. İlk başarı deneyimi önemlidir.","Ödül maliyeti beklenen ek katkıyı aşmamalıdır."]},
+ offerA:{stage:"Teklif",title:"Teklif A",
+  sum:"Müşteri A için hedef harcama eşiği ve ödül kombinasyonu.",
+  uses:["Mevcut 3 aylık ortalama","Müşterinin büyüme kapasitesi","Segment bazlı ödül aralığı"],
+  outs:["Hedef: 8.000 TL","Ödül: 600 TL","Dönem: 1-30 Kasım"],
+  ex:"Ödül oranı yaklaşık yüzde 7,5 (600 / 8.000). Eşik, mevcut ortalamanın üzerine konulan bir büyüme çarpanıyla belirlenir.",
+  watch:["Dönem uzunluğu hedefin gerçekçi olmasını sağlamalıdır.","Aynı müşteriye üst üste teklif verilmeden önce yorgunluk kontrolü yapılmalıdır."]},
+ offerB:{stage:"Teklif",title:"Teklif B",
+  sum:"Müşteri B için daha ulaşılabilir hedef ve kontrollü ödül.",
+  uses:["Mevcut 3 aylık ortalama","Büyüme potansiyeli skoru","Teşvik bütçesi"],
+  outs:["Hedef: 3.000 TL","Ödül: 100 TL","Dönem: 1-30 Kasım"],
+  ex:"Ödül oranı yaklaşık yüzde 3,3 (100 / 3.000). İlk hedef, mevcut davranışa yakın tutulur.",
+  watch:["Başarılı olursa bir sonraki dönemde hedef kademeli olarak yükseltilebilir."]},
+ guard:{stage:"Kontrol",title:"Kârlılık, bütçe ve risk kontrolü",
+  sum:"Teklif müşteriye gösterilmeden önce son kapıdır. Modelin tek başına ödül dağıtmasını engeller.",
+  uses:["Müşteri bazlı net kârlılık","Kart bazlı net katkı","Teşvik bütçesi ve kalan tavan","Müşteri risk göstergeleri"],
+  outs:["Onay","Düşürülmüş teklif","Eleme (genel kampanya listesi gösterilir)"],
+  ex:"Teklifin maliyeti beklenen ek net katkıyı aşıyorsa ödül düşürülür ya da teklif elenir.",
+  watch:["Riskli müşteriye aşırı harcamayı teşvik eden teklif verilmemelidir (sorumlu kredi yaklaşımı).","Bütçe tavanı günlük olarak izlenmelidir."]},
+ present:{stage:"Sunum",title:"Uygulamada sunum",
+  sum:"Teklif dört ekranda müşteriye ulaşır. Uygulama aynı kalır, değişen şey içeriktir.",
+  uses:["Ana ekran: Sana Özel kampanyaları keşfet kartı","Yeni Kampanyalar: kişiye özel kartlar","Kampanya detayı: hedef, ilerleme çubuğu, ödül","Kazanım: ödülün hesaba yüklendiği bildirimi"],
+  outs:["Gösterim, tıklama ve ilerleme olayları"],
+  ex:"İlerleme çubuğunda '4.200 TL / 8.000 TL, 3.800 TL daha harca' gibi net bir mesaj gösterilir.",
+  watch:["Müşteriye içsel etiketler (kârlı, düşük kârlı) asla gösterilmez.","Bildirim sıklığına üst sınır konmalı ve müşterinin bildirim tercihi gözetilmelidir.","Karar motoru yanıt vermezse genel kampanya listesi gösterilir."]},
+ track:{stage:"Ölçüm",title:"Sonuç takibi ve öğrenme",
+  sum:"Teklifin işe yarayıp yaramadığını ölçer ve sonucu modele geri besler.",
+  uses:["Kim hedefe ulaştı, ne kadar harcadı","Ödül maliyeti ve net katkı","Kampanya sonrası harcama kalıcılığı"],
+  outs:["Hedefe ulaşma oranı","Ek harcama","Net katkı","Sonraki teklif için güncel profil"],
+  ex:"Hedefe ulaşan müşterinin kampanya bittikten sonra da harcamayı sürdürüp sürdürmediği ölçülür.",
+  watch:["Kampanya yapılmayan bir kontrol grubuyla karşılaştırma yapılmalıdır, aksi halde etki abartılabilir.","A/B testleriyle hedef ve ödül kombinasyonları sürekli denenmelidir."]}
+};
+var ORDER=["segment","spend","camp","tx","profile","engine","custA","custB","offerA","offerB","guard","present","track"];
+var cur=null;
+var body=document.getElementById("detail-body");
+var panel=document.getElementById("detail");
+function li(a){return a.map(function(x){return "<li>"+x+"</li>";}).join("");}
+function empty(){
+  body.innerHTML='<div class="empty"><h2>Bir adım seçin</h2><p>Soldaki akıştan herhangi bir kutuya tıklayın. Ne işe yaradığını, hangi veriyi kullandığını, ne ürettiğini ve nelere dikkat edilmesi gerektiğini burada göreceksiniz.</p><button class="start" id="go">Akışı baştan gez</button></div>';
+  document.getElementById("go").onclick=function(){select(ORDER[0]);};
+}
+function select(id){
+  var d=D[id];if(!d)return;
+  cur=id;
+  var nodes=document.querySelectorAll(".node");
+  for(var i=0;i<nodes.length;i++){var on=nodes[i].getAttribute("data-id")===id;nodes[i].classList.toggle("sel",on);nodes[i].setAttribute("aria-pressed",on);}
+  var idx=ORDER.indexOf(id);
+  body.innerHTML='<span class="stage-tag">'+d.stage+'</span><h2>'+d.title+'</h2><p class="sum">'+d.sum+'</p>'
+   +'<h3>Kullandığı veri</h3><ul>'+li(d.uses)+'</ul>'
+   +'<h3>Ürettiği çıktı</h3><ul>'+li(d.outs)+'</ul>'
+   +'<h3>Örnek</h3><div class="ex">'+d.ex+'</div>'
+   +'<h3>Dikkat edilecekler</h3><ul class="watch">'+li(d.watch)+'</ul>'
+   +'<div class="nav"><button id="prev"'+(idx===0?' disabled':'')+'>Önceki adım</button><button id="next" class="primary"'+(idx===ORDER.length-1?' disabled':'')+'>Sonraki adım</button></div>';
+  document.getElementById("prev").onclick=function(){select(ORDER[idx-1]);};
+  document.getElementById("next").onclick=function(){select(ORDER[idx+1]);};
+  panel.classList.add("open");
+  document.body.classList.add("sheet");
+  panel.scrollTop=0;
+}
+document.getElementById("flow").addEventListener("click",function(e){
+  var n=e.target.closest(".node");if(n)select(n.getAttribute("data-id"));
+});
+document.getElementById("close").onclick=function(){
+  panel.classList.remove("open");document.body.classList.remove("sheet");
+};
+document.addEventListener("keydown",function(e){
+  if(e.key==="Escape"){panel.classList.remove("open");document.body.classList.remove("sheet");}
+});
+empty();
+if(window.matchMedia("(min-width:960px)").matches){panel.classList.add("open");}
+</script>
+</body>
+</html>
